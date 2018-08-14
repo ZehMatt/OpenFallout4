@@ -102,6 +102,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="game\game.h" />
     <ClInclude Include="interop\hooks.h" />
     <ClInclude Include="interop\interop.h" />
     <ClInclude Include="interop\interopbase.h" />

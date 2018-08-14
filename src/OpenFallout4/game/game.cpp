@@ -1,9 +1,13 @@
 #include <windows.h>
 #include <conio.h>
+#include <xmmintrin.h> 
 
 #include "../interop/interop.h"
+#include "game.h"
 
 // Data
+static interop::var<GameContext_t*, 0x145ADD2C8> gGameContext;
+static interop::var<TimeData_t, 0x145B946C0> gTimeData2;
 static interop::var<uint32_t, 0x14370C8A0> iNumHWThreads;
 static interop::var<char[0x210], 0x14370C8A0> gUserName;
 static interop::var<uint64_t, 0x145A3A760> qword_145A3A760;
@@ -13,6 +17,64 @@ static interop::var<char[0x08], 0x145ADE390> byte_145ADE390;
 static interop::var<char[0x10], 0x145ADE398> byte_145ADE398;
 static interop::var<char[0x08], 0x145ADE3A8> byte_145ADE3A8;
 static interop::var<void*, 0x145907BA0> qword_145907BA0;
+static interop::var<uint8_t*, 0x145909918> qword_145909918;
+static interop::var<uint8_t*, 0x145ADD3A8> qword_145ADD3A8;
+static interop::var<uint8_t*, 0x145909B40> qword_145909B40;
+static interop::var<uint8_t*, 0x145A13170> qword_145A13170;
+static interop::var<uint8_t*, 0x145ADD3D8> qword_145ADD3D8;
+static interop::var<uint8_t*, 0x146038088> qword_146038088;
+static interop::var<uint8_t*, 0x14591BA80> qword_14591BA80;
+static interop::var<uint8_t*, 0x145A98E60> qword_145A98E60;
+static interop::var<uint8_t*, 0x145ADD2D0> qword_145ADD2D0;
+static interop::var<int64_t, 0x145ADD548> qword_145ADD548;
+static interop::var<void*, 0x145907BA8> qword_145907BA8;
+static interop::var<void*, 0x145909B28> qword_145909B28;
+static interop::var<void*, 0x145ADD3E8> qword_145ADD3E8;
+static interop::var<void*, 0x145A92288> qword_145A92288;
+static interop::var<void*, 0x145AA4DF0> qword_145AA4DF0;
+static interop::var<void*, 0x145909908> qword_145909908;
+static interop::var<void*, 0x145AAC618> qword_145AAC618;
+static interop::var<void*, 0x1459097F8> qword_1459097F8;
+static interop::var<void*, 0x14590C388> qword_14590C388;
+static interop::var<void*, 0x145A12E18> qword_145A12E18;
+static interop::var<void*, 0x145A986B8> qword_145A986B8;
+static interop::var<void*, 0x145A98AB0> qword_145A98AB0;
+static interop::var<void*, 0x145A13268> qword_145A13268;
+static interop::var<void*, 0x145A9BF90> qword_145A9BF90;
+static interop::var<void*, 0x145907F18> qword_145907F18;
+static interop::var<void*, 0x14590D6E0> qword_14590D6E0;
+static interop::var<void*, 0x145908100> qword_145908100;
+static interop::var<void*, 0x145AA0A40> qword_145AA0A40;
+static interop::var<void*, 0x145909B58> qword_145909B58;
+static interop::var<void*, 0x145AA0260> qword_145AA0260;
+static interop::var<void*, 0x145A12E20> qword_145A12E20;
+static interop::var<void*, 0x145AFF540> qword_145AFF540;
+static interop::var<void*, 0x14676A740> qword_14676A740;
+static interop::var<uint32_t, 0x146759304> dword_146759304;
+static interop::var<uint32_t, 0x1437C63A8> dword_1437C63A8;
+static interop::var<uint32_t, 0x145AFF724> dword_145AFF724;
+static interop::var<uint32_t, 0x1438FDF5C> dword_1438FDF5C;
+static interop::var<uint32_t, 0x1438FE1E8> dword_1438FE1E8;
+static interop::var<uint32_t, 0x1438FE1EC> dword_1438FE1EC;
+static interop::var<uint32_t, 0x1438FE1F0> dword_1438FE1F0;
+static interop::var<uint32_t, 0x1438FE1F4> dword_1438FE1F4;
+static interop::var<uint32_t, 0x1437C6528> dword_1437C6528;
+static interop::var<uint32_t, 0x143905E80> dword_143905E80;
+static interop::var<uint32_t, 0x14676> TlsIndex;
+static interop::var<float, 0x145B00A58> gDeltaAccumulator;
+static interop::var<float, 0x145B00A5C> flt_145B00A5C;
+static interop::var<float, 0x1437C6528> flt_1437C6528;
+static interop::var<float, 0x1437C6DC8> flt_1437C6DC8;
+static interop::var<float, 0x1437C65E8> flt_1437C65E8;
+static interop::var<char, 0x145ADD2AD> byte_145ADD2AD;
+static interop::var<char, 0x1437C6618> byte_1437C6618;
+static interop::var<char, 0x145ADD550> byte_145ADD550;
+static interop::var<char, 0x145ADD2B7> byte_145ADD2B7;
+static interop::var<char, 0x145B14E0F> byte_145B14E0F;
+static interop::var<char, 0x145ADD2FC> byte_145ADD2FC;
+static interop::var<char, 0x1437C6660> byte_1437C6660;
+static interop::var<char, 0x145ADD2AC> byte_145ADD2AC;
+static interop::var<char[128], 0x143905A00> unk_143905A00;
 
 // Functions.
 static interop::func<void(), 0x140D3EB40> CreateGameDataDirectories;
@@ -30,6 +92,113 @@ static interop::func<void(), 0x1401B3BA0> sub_1401B3BA0;
 static interop::func<void*(void*), 0x141B10EB0> sub_141B10EB0;
 static interop::func<void*(void*), 0x141B10BE0> unknown_libname_4406;
 static interop::func<void*(), 0x140D4BE90> sub_140D4BE90;
+static interop::func<void(uint32_t), 0x14294BD50> sub_14294BD50;
+static interop::func<void(void*), 0x140D38A20> sub_140D38A20;
+static interop::func<int64_t(bool, uint32_t), 0x140C8EC50> sub_140C8EC50;
+static interop::func<void(void*), 0x1409E5F70> sub_1409E5F70;
+//static interop::func<void(GameContext_t*), 0x140D38D40> GameUpdate;
+static interop::func<void*(), 0x14287C6D0> sub_14287C6D0;
+static interop::func<void(void*), 0x142853DF0> sub_142853DF0;
+static interop::func<int64_t(GameContext_t*), 0x140D3B6E0> sub_140D3B6E0;
+static interop::func<int64_t(int32_t), 0x14294BDB0> sub_14294BDB0;
+static interop::func<int(void), 0x140D39B50> sub_140D39B50;
+static interop::func<int(void*), 0x141B62EA0> sub_141B62EA0;
+static interop::func<void(double), 0x140267FA0> BeginFrame;
+static interop::func<int64_t(), 0x140D3BE30> sub_140D3BE30;
+static interop::func<bool(void*, uint32_t), 0x14124E6D0> sub_14124E6D0;
+static interop::func<int64_t(GameContext_t*), 0x140D39D20> sub_140D39D20;
+static interop::func<bool(), 0x140D40C90> ProcessMessages;
+static interop::func<int64_t(), 0x140CBCEC0> sub_140CBCEC0;
+static interop::func<int64_t(void*, uint8_t), 0x1427D4670> sub_1427D4670;
+static interop::func<int64_t(void*), 0x1427D3FF0> sub_1427D3FF0;
+static interop::func<int64_t(void*), 0x140DB4E60> sub_140DB4E60;
+static interop::func<int64_t(void*, void*, uint8_t, uint8_t), 0x1400FB170> sub_1400FB170;
+static interop::func<void(void*, uint32_t), 0x141CA38F0> sub_141CA38F0;
+static interop::func<void(void*, void*, char, float, char), 0x1400FB350> sub_1400FB350;
+static interop::func<bool(uint64_t), 0x1403B3700> sub_1403B3700;
+static interop::func<int64_t(), 0x14282EE50> sub_14282EE50;
+static interop::func<bool(void*, uint32_t), 0x1427D4B90> sub_1427D4B90;
+static interop::func<int64_t(void*), 0x14018C340> sub_14018C340;
+static interop::func<int64_t(void*), 0x140CF13A0> sub_140CF13A0;
+static interop::func<bool(), 0x140D3C800> sub_140D3C800;
+static interop::func<int64_t(void*), 0x140EA6470> sub_140EA6470;
+static interop::func<uint8_t(void*, uint64_t*), 0x142042040> sub_142042040;
+static interop::func<void*(), 0x14204B8B0> sub_14204B8B0;
+static interop::func<void*(), 0x14204B6D0> sub_14204B6D0;
+static interop::func<void*(), 0x14204BFD0> sub_14204BFD0;
+static interop::func<void*(), 0x14204C330> sub_14204C330;
+static interop::func<void*(), 0x14204B850> sub_14204B850;
+static interop::func<void*(), 0x14204B5B0> sub_14204B5B0;
+static interop::func<int64_t(), 0x140D0CCD0> sub_140D0CCD0;
+static interop::func<int64_t(void*), 0x140D1D730> sub_140D1D730;
+static interop::func<int64_t(void*, uint64_t), 0x140D19F30> sub_140D19F30;
+static interop::func<int64_t(), 0x140CBCE50> sub_140CBCE50;
+static interop::func<uint8_t(void*), 0x1427D3280> sub_1427D3280;
+static interop::func<uint8_t(), 0x140D3C000> sub_140D3C000;
+static interop::func<uint8_t(), 0x140D413D0> sub_140D413D0;
+static interop::func<uint8_t(void*, char), 0x140D3A210> sub_140D3A210;
+static interop::func<int64_t(uint8_t), 0x1403DE8C0> sub_1403DE8C0;
+static interop::func<void*(), 0x14038AC50> sub_14038AC50;
+static interop::func<uint64_t(void*), 0x1407ED4F0> sub_1407ED4F0;
+static interop::func<int64_t(void*, void*), 0x1407F8CC0> GsDriverEntry;
+static interop::func<uint64_t(void*), 0x141372030> sub_141372030;
+static interop::func<uint64_t(void*), 0x141372290> sub_141372290;
+static interop::func<uint64_t(void*, float, float), 0x140E146C0> sub_140E146C0;
+static interop::func<int64_t(void*, char), 0x141084620> sub_141084620;
+static interop::func<uint64_t(), 0x140D396C0> sub_140D396C0;
+static interop::func<uint64_t(void*), 0x141B2BD10> sub_141B2BD10;
+static interop::func<uint64_t(), 0x14125BE70> sub_14125BE70;
+static interop::func<uint64_t(void*, void*), 0x141B2D1E0> sub_141B2D1E0;
+static interop::func<uint64_t(), 0x140A51050> sub_140A51050;
+static interop::func<uint64_t(void*), 0x140A510E0> sub_140A510E0;
+static interop::func<void(), 0x140D39A10> sub_140D39A10;
+static interop::func<void(uint32_t), 0x141B63050> sub_141B63050;
+static interop::func<void(void*), 0x1401819F0> sub_1401819F0;
+static interop::func<void**(), 0x1401E4B30> sub_1401E4B30;
+static interop::func<int64_t(void*, float), 0x140F0DC60> sub_140F0DC60;
+static interop::func<int64_t(), 0x140D24360> sub_140D24360;
+static interop::func<int64_t(), 0x141BA5830> sub_141BA5830;
+static interop::func<int64_t(void*, void*, char, void*), 0x1400F57C0> sub_1400F57C0;
+static interop::func<__m128(void*), 0x14124D0C0> sub_14124D0C0;
+static interop::func<int64_t(void*, float, char, void*), 0x1428451A0> sub_1428451A0;
+static interop::func<void(float), 0x1427FC090> sub_1427FC090;
+static interop::func<bool(uint32_t), 0x140CBCD50> sub_140CBCD50;
+static interop::func<bool(), 0x1401EF270> sub_1401EF270;
+static interop::func<uint32_t(uint32_t, uint32_t), 0x141B630F0> sub_141B630F0;
+static interop::func<int64_t(), 0x140D39940> sub_140D39940;
+static interop::func<int64_t(void*), 0x142572910> sub_142572910;
+static interop::func<int64_t(void*, float), 0x140D3A8A0> sub_140D3A8A0;
+static interop::func<int64_t(void*), 0x140D385E0> sub_140D385E0;
+static interop::func<uint32_t(), 0x140CBCE80> sub_140CBCE80;
+static interop::func<int64_t(void*, void*), 0x141B0F330> sub_141B0F330;
+static interop::func<void*(void*), 0x141B0E350> sub_141B0E350;
+static interop::func<int64_t(void*), 0x141B14600> sub_141B14600;
+static interop::func<int64_t(void*), 0x140C20300> sub_140C20300;
+static interop::func<int64_t(), 0x1409FD050> sub_1409FD050;
+static interop::func<int64_t(void*), 0x142042310> sub_142042310;
+static interop::func<int64_t(void*), 0x142043410> sub_142043410;
+static interop::func<int64_t(void*), 0x1409FD260> sub_1409FD260;
+static interop::func<int64_t(), 0x14125B660> sub_14125B660;
+static interop::func<int64_t(void*), 0x140D3A480> EndFrame;
+static interop::func<int64_t(float), 0x140268090> sub_140268090;
+static interop::func<int64_t(float), 0x1409C02F0> sub_1409C02F0;
+static interop::func<int64_t(float), 0x140E61300> sub_140E61300;
+static interop::func<int64_t(float), 0x1409C4510> sub_1409C4510;
+static interop::func<int64_t(), 0x142486E10> sub_142486E10;
+static interop::func<int64_t(), 0x140C8C450> sub_140C8C450;
+static interop::func<bool(void*), 0x140E00AA0> sub_140E00AA0;
+static interop::func<int64_t(float), 0x140832290> sub_140832290;
+static interop::func<int64_t(void*, void*), 0x140D398A0> sub_140D398A0;
+static interop::func<int64_t(void*), 0x1413723D0> sub_1413723D0;
+static interop::func<int64_t(), 0x1404E4C20> sub_1404E4C20;
+static interop::func<int64_t(void*, float, uint32_t), 0x140D57E80> sub_140D57E80;
+static interop::func<int64_t(void*, char), 0x140685940> sub_140685940;
+static interop::func<int64_t(void*), 0x141B14610> sub_141B14610;
+static interop::func<int64_t(), 0x1404E5070> sub_1404E5070;
+static interop::func<int64_t(), 0x1404E1510> sub_1404E1510;
+static interop::func<int64_t(void*), 0x1428C3690> sub_1428C3690;
+static interop::func<int64_t(), 0x140D0CCA0> sub_140D0CCA0;
+static interop::func<int64_t(void*), 0x14204AE30> sub_14204AE30;
 
 // Const
 static const char *lpClassName = "Fallout4";
@@ -434,40 +603,372 @@ bool __stdcall InitializeGame()
 }
 //HOOK_FUNCTION(0x140D35F80, InitializeGame);
 
-// Data
-#pragma pack(push, 1)
-struct GameContext_t // 0x268 from malloc.
+int64_t __fastcall GameUpdate(GameContext_t *a1)
 {
-    char unknown[36];
-    bool exitBreak;
-    bool var_0;
-    char padding[10];
-    HWND hwnd;
-};
-//template<size_t N> struct showme; showme<offsetof(GameContext_t, hwnd)> blub;
-static_assert(offsetof(GameContext_t, exitBreak) == 0x24);
-static_assert(offsetof(GameContext_t, var_0) == 0x25);
-static_assert(offsetof(GameContext_t, hwnd) == 0x30);
-#pragma pack(pop)
+    char v3; // si
+    int64_t result; // ax
+    __int64 v8; // rbx
+    void* v10; // rbx
+    uint64_t *v11; // rax
+    void* v12; // rbx
+    uint64_t *v13; // rax
+    void* v14; // rbx
+    uint64_t *v15; // rax
+    void* v16; // rbx
+    uint64_t *v17; // rax
+    void* v18; // rbx
+    uint64_t *v19; // rax
+    void* v20; // rbx
+    uint64_t *v21; // rax
+    __int64 v22; // rcx
+    uint8_t* v26; // rbx
+    uint64_t *v27; // rax
+    char v28; // rdx
+    float v30; // rax
+    uint32_t *v36; // rcx
+    char v40; // bl
+    void* v42; // rax
+    uint8_t* v51; // rbx
+    uint64_t *v53; // rax
+    __int64 v59; // rcx
+    __int64 v60; // rdi
+    int v61; // ebx
+    char v62; // [rsp+20h] [rbp-28h]
+    float delta = 0.0f;
 
-static interop::var<GameContext_t*, 0x145ADD2C8> gGameContextPtr;
-static interop::var<void*, 0x145ADD2D0> qword_145ADD2D0;
-static interop::var<void*, 0x145ADD3E8> qword_145ADD3E8;
-static interop::var<void*, 0x145A92288> qword_145A92288;
+    GameContext_t *context = a1;
+    bool v2 = *(uint32_t*)(qword_145909918.get() + 480) != 0;
+    a1->field_1D0 = v2;
+    if (v2 || a1->field_2A)
+    {
+        v3 = 0;
+        if (v2)
+            sub_140D39B50();
+    }
+    else
+    {
+        v3 = 1;
+    }
 
-static interop::var<char, 0x145ADD2AD> byte_145ADD2AD;
-static interop::var<char, 0x1437C6618> byte_1437C6618;
+    delta = gTimeData2.get().scaledDeltaTime;
+    if ((!context->field_1D0 || context->field_1D1) && !context->field_2A)
+    {
+        BeginFrame(delta);
+    }
 
-// Functions
-static interop::func<void(uint32_t), 0x14294BD50> sub_14294BD50;
-static interop::func<void(void*), 0x140D38A20> sub_140D38A20;
-static interop::func<int64_t(bool, uint32_t), 0x140C8EC50> sub_140C8EC50;
-static interop::func<void(void*), 0x1409E5F70> sub_1409E5F70;
-static interop::func<void(GameContext_t*), 0x140D38D40> sub_140D38D40;
-static interop::func<void*(), 0x14287C6D0> sub_14287C6D0;
-static interop::func<void(void*), 0x142853DF0> sub_142853DF0;
-static interop::func<int64_t(GameContext_t*), 0x140D3B6E0> sub_140D3B6E0;
-static interop::func<int64_t(int32_t), 0x14294BDB0> sub_14294BDB0;
+    //nullsub_980(qword_145ADD758, qword_145ADD228);
+    sub_141B62EA0(qword_145AA4DF0.get());               // ResetEvent in there
+    if (GetAsyncKeyState(9) >= 0 || (result = GetAsyncKeyState(18), !(result & 0x8000)))
+    {
+        if (!context->field_1D0 || (sub_140D3BE30(), !context->field_1D0))
+        {
+            if (context->field_2A && sub_14124E6D0(qword_145907BA8.get(), 3u))
+                sub_140D39D20(context);
+        }
+        if (byte_145ADD2AD.get())
+        {
+            if (ProcessMessages())
+            {
+                sub_140CBCEC0();
+                sub_1427D4670(qword_145909B28.get(), 1);
+                sub_1427D3FF0(qword_145909B28.get());
+            }
+            else if (!(unsigned __int8)sub_140DB4E60(qword_145ADD3D8.get()))
+            {
+                if (byte_145ADD550.get())
+                {
+                    if (byte_145ADD2B7.get())
+                    {
+                        byte_145B14E0F = 1;
+                        sub_1400FB170(qword_145ADD2D0.get(), nullptr, 1, 1);
+                        sub_141CA38F0(qword_146038088.get(), 4);
+                        v62 = 1;
+                        sub_1400FB350(qword_145ADD2D0.get(), nullptr, 0, -1.0f, 1);
+                        byte_145ADD550 = 0;
+                        byte_145ADD2FC = 0;
+                    }
+                }
+                else
+                {
+                    v8 = *(uint64_t*)(qword_145ADD3D8.get() + 184);
+                    if (v8 && v8 != qword_145ADD548.get() && !(*(uint8_t*)(v8 + 64) & 1))
+                    {
+                        if (!sub_1403B3700(*(uint64_t *)(qword_145ADD3D8.get() + 184))
+                            || !(unsigned __int8)sub_14282EE50() 
+                            && !sub_1427D4B90(qword_145909B28.get(), *(uint32_t*)(v8 + 20)))
+                        {
+                            byte_145ADD550 = 1;
+                            byte_145ADD2FC = 1;
+                        }
+                        qword_145ADD548 = v8;
+                    }
+                }
+            }
+            sub_14018C340(qword_145909908.get());
+            sub_140CF13A0(qword_145AAC618.get());
+            sub_140D3C800();
+            sub_140EA6470(qword_145ADD3D8.get());
+        }
+
+        if (!byte_1437C6660.get())
+            goto LABEL_48;
+
+        if (context->field_1D0)
+        {
+            v10 = qword_145909918.get();
+            v11 = (uint64_t *)sub_14204B8B0(); // MapMenu
+            if ((unsigned __int8)sub_142042040(v10, v11))
+                goto LABEL_48;
+
+            v12 = qword_145909918.get();
+            v13 = (uint64_t *)sub_14204B6D0(); // LockpickingMenu
+            if ((unsigned __int8)sub_142042040(v12, v13))
+                goto LABEL_48;
+
+            v14 = qword_145909918.get();
+            v15 = (uint64_t *)sub_14204BFD0(); // RaceSexMenu
+            if ((unsigned __int8)sub_142042040(v14, v15))
+                goto LABEL_48;
+
+            v16 = qword_145909918.get();
+            v17 = (uint64_t *)sub_14204C330(); // StatsMenu
+            if ((unsigned __int8)sub_142042040(v16, v17))
+                goto LABEL_48;
+
+            v18 = qword_145909918.get();
+            v19 = (uint64_t *)sub_14204B850(); // MainMenu
+            if ((unsigned __int8)sub_142042040(v18, v19))
+                goto LABEL_48;
+
+            v20 = qword_145909918.get();
+            v21 = (uint64_t *)sub_14204B5B0(); // LoadingMenu
+            if ((unsigned __int8)sub_142042040(v20, v21))
+                goto LABEL_48;
+        }
+        v22 = *(unsigned int *)(qword_146038088.get() + 5168);
+        if (!(uint32_t)v22)
+        {
+            if (context->field_1D0)
+            {
+                sub_140D0CCD0();
+LABEL_48:
+                if (v3)
+                    dword_146759304.get() ^= 1u;
+
+                if (!context->field_1D0 && !context->field_2A)
+                {
+                    // NOTE: This is a function call.
+                    (*(void(__cdecl **)(void*))(*(uint64_t *)qword_145ADD3A8.get() + 552i64))(qword_145ADD3A8.get());
+
+                    sub_140D1D730(qword_145909B40.get());
+                    sub_140D19F30(qword_145A13170.get(), gTimeData2.get().deltaTime);
+                }
+
+                if (v3)
+                {
+                    flt_145B00A5C = gDeltaAccumulator;
+                    delta = gDeltaAccumulator.get() + gTimeData2.get().scaledDeltaTime;
+                    gDeltaAccumulator = delta;
+                    sub_140CBCE50();
+                }
+
+                if (byte_145ADD2AC.get())
+                {
+                    if (!sub_1427D3280(qword_145909B28.get()))
+                        sub_140D3C000();
+                    v26 = qword_145909918.get();
+                    v27 = (uint64_t *)sub_14204B8B0(); // MapMenu
+                    if (!(unsigned __int8)sub_142042040(v26, v27))
+                    {
+                        if (context->field_1D0 || context->field_2A)
+                            v28 = 0;
+                        else
+                            v28 = 1;
+                        sub_140D3A210(context, v28);
+                    }
+                }
+                ++dword_1437C63A8;
+                dword_145AFF724 = 0;
+                if (!context->field_1D0)
+                    ++dword_1438FDF5C;
+                sub_1403DE8C0(context->field_1D0);
+                if (!v3)
+                {
+                    if (byte_145ADD2AC.get())
+                    {
+                        void *p = sub_14038AC50();
+                        sub_1407ED4F0(p);
+                        GsDriverEntry(qword_1459097F8.get(), nullptr);
+                        sub_141372030(qword_14590C388.get());
+                        sub_141372290(qword_14590C388.get());
+                        sub_141084620(qword_145A12E18.get(), 1);
+                        sub_140E146C0(qword_145ADD3D8.get(), delta, 0.0f);
+                        sub_140D396C0();
+                    }
+                    sub_141B2BD10(qword_145A986B8.get());
+                    sub_14125BE70();
+                    sub_140A51050();
+                    sub_141B2D1E0(qword_145A98AB0.get(), qword_145A13268.get());
+                    sub_141B2D1E0(qword_145A98AB0.get(), qword_145A92288.get());
+                    sub_140A510E0(qword_145A9BF90.get());
+                }
+                if (byte_145ADD2AC.get())
+                    sub_140D39A10();
+                if (!context->field_1D0 && !context->field_2A)
+                    sub_1401E4B30();
+
+                sub_140F0DC60(qword_145907F18.get(), gTimeData2.get().scaledDeltaTime);
+                if (context->field_1D0)
+                {
+                    sub_140D24360();
+                    sub_141BA5830();
+                }
+                /*
+                if (gHitchedShaderCompilation)
+                {
+                    gHitchedShaderCompilation = 0;
+                    sub_140AE1D70((unsigned __int64)"Hitched from shader compile", 0);
+                }
+                */
+                if (!context->field_1D0 && !context->field_2A && !sub_140D413D0())
+                {
+                    sub_1400F57C0(qword_145ADD2D0.get(), qword_145ADD3D8.get() + 208, 1, nullptr);
+                }
+
+                sub_141B63050(0);
+                sub_141B63050(1);
+                if (qword_14590D6E0.get())
+                    sub_1401819F0(qword_14590D6E0.get());
+                sub_141B63050(2);
+                v36 = *(uint32_t **)(qword_145ADD3A8.get() + 320);
+                v36[97] = dword_1438FE1E8.get();
+                v36[98] = dword_1438FE1EC.get();
+                v36[99] = dword_1438FE1F0.get();
+                v36[100] = dword_1438FE1F4.get();
+                if (byte_145ADD2AC.get())
+                {
+                    __m128 res = sub_14124D0C0(qword_145907BA8.get());
+                    if (*(uint32_t *)(qword_14591BA80.get() + 64) != 1)
+                    {
+                        // rcx, xmm1, r8b, r9
+                        sub_1428451A0(qword_145ADD3A8.get(), res.m128_f32[0], 0, nullptr);
+                        sub_1427FC090(res.m128_f32[0]);
+                    }
+                }
+                if (sub_140CBCD50(1))
+                {
+                    if (sub_1401EF270())
+                        sub_141B630F0(0, 3);
+                    sub_141B630F0(0, 0);
+                }
+                sub_140D39940();
+                if (qword_145908100.get())
+                    sub_142572910(qword_145AA0A40.get());
+
+                float xmm0 = flt_1437C6528.get();
+                v30 = flt_1437C6DC8.get();
+                if(v30 <= xmm0)
+                    v30 = xmm0;
+                    
+                sub_140D3A8A0(context, v30);
+                sub_140D385E0(context);
+                v40 = sub_140CBCD50(0);
+                sub_140CBCE80();
+                if (dword_143905E80.get() != 2)
+                    sub_141B0F330(&unk_143905A00.get(), &dword_143905E80.get());
+                v42 = sub_141B0E350(&unk_143905A00.get());
+                sub_141B14600(v42);
+                if (!v40)
+                {
+                    sub_141B2D1E0(qword_145A98AB0.get(), qword_145909B58.get());
+                    sub_141B2D1E0(qword_145A98AB0.get(), qword_145AA0260.get());
+                    sub_141B2D1E0(qword_145A98AB0.get(), qword_145909918.get());
+                    sub_140C20300(qword_145A12E20.get());
+                    sub_1409FD050();
+                    sub_142042310(qword_145909918.get());
+                    sub_142043410(qword_145909918.get());
+                }
+                if (qword_145A98E60.get())
+                {
+                    sub_1409FD260(qword_145A98E60.get());
+                    *(uint32_t *)(qword_145A98E60.get() + 428) = 0;
+                }
+                if (gGameContext->field_2B)
+                {
+                    gGameContext->field_2B = 0;
+                    gGameContext->field_2A = 1;
+                }
+                sub_14125B660();
+
+                EndFrame(context);
+                if ((!context->field_1D0 || context->field_1D1) && !context->field_2A)
+                    sub_140268090(xmm0);
+
+                if (!v3)
+                {
+                    if (!context->field_1D0 && !context->field_2A)
+                    {
+                        float scaledDelta = gTimeData2.get().scaledDeltaTime;
+                        sub_1409C02F0(scaledDelta);
+                        sub_140E61300(scaledDelta);
+                        sub_1409C4510(scaledDelta);
+                    }
+                    sub_142486E10();
+                    sub_140C8C450();
+
+                    float p1 = 0.0f;
+                    if (qword_145ADD3D8.get() && sub_140E00AA0(qword_145ADD3D8.get()))
+                        p1 = (float)(unsigned int)flt_1437C65E8.get();
+
+                    sub_140832290(p1);
+                    if (byte_145ADD2AC.get())
+                    {
+                        sub_140D398A0(context, nullptr);
+                        sub_1413723D0(qword_14590C388.get());
+                    }
+                    sub_1404E4C20();
+                    sub_140D57E80(qword_145AFF540.get(), p1, 8);
+                    v51 = qword_145909918.get();
+                    v53 = (uint64_t *)sub_14204BFD0();
+                    if ((unsigned __int8)sub_142042040(v51, v53))
+                    {
+                        void *v54 = (*(void*(__cdecl **)(void*))(*(uint64_t *)qword_145ADD3D8.get() + 1032i64))(qword_145ADD3D8.get());
+                        sub_140685940(v54, 1);
+                    }
+                }
+                if (dword_143905E80.get() != 2)
+                    sub_141B0F330(&unk_143905A00.get(), &dword_143905E80.get());
+                void *v56 = sub_141B0E350(&unk_143905A00.get());
+                sub_141B14610(v56);
+                sub_1404E5070();
+                sub_1404E1510();
+                if (!context->field_2A)
+                {
+                    v59 = (unsigned int)TlsIndex.get();
+                    v60 = *(uint64_t *)(__readgsqword(0x58u) + 8i64 * (unsigned int)TlsIndex.get());
+                    v61 = *(uint32_t *)(v60 + 2496);
+                    *(uint32_t *)(v60 + 2496) = 7;
+                    //nullsub_807(v59);
+                    *(uint32_t *)(v60 + 2496) = v61;
+                }
+                return sub_1428C3690(qword_14676A740.get());
+            }
+            if (*((uint64_t *)qword_145ADD2D0.get() + 11))
+            {
+                uint8_t *v23 = qword_145909918.get();
+                uint64_t *v24 = (uint64_t *)sub_14204AE30((void*)v22);
+                if (!(unsigned __int8)sub_142042040(v23, v24))
+                {
+                    sub_140D0CCD0();
+                    goto LABEL_48;
+                }
+            }
+        }
+        sub_140D0CCA0();
+        goto LABEL_48;
+    }
+    return result;
+}
 
 void MainGameLoop()
 {
@@ -475,9 +976,9 @@ void MainGameLoop()
     while (true)
     {
         sub_14294BD50(0);
-        sub_140D38A20(gGameContextPtr.get());
+        sub_140D38A20(gGameContext.get());
 
-        if (GetActiveWindow() == gGameContextPtr->hwnd
+        if (GetActiveWindow() == gGameContext->hwnd
             || qword_145ADD2D0.get() 
             && (*((bool *)qword_145ADD2D0.get() + 197) 
             || *((bool*)qword_145ADD2D0.get() + 198))
@@ -490,7 +991,7 @@ void MainGameLoop()
                 sub_140C8EC50(false, 0);
                 sub_1409E5F70(qword_145A92288.get());
             }
-            sub_140D38D40(gGameContextPtr.get());
+            GameUpdate(gGameContext.get());
         }
         else
         {
@@ -504,13 +1005,13 @@ void MainGameLoop()
             Sleep(0x32u);
         }
 
-        if(gGameContextPtr->exitBreak)
+        if(gGameContext->exitGame)
             break;
 
-        if (gGameContextPtr->var_0)
+        if (gGameContext->unknownField)
         {
             if (byte_145ADD2AD.get())
-                sub_140D3B6E0(gGameContextPtr.get());
+                sub_140D3B6E0(gGameContext.get());
         }
 
         sub_14294BDB0(0);

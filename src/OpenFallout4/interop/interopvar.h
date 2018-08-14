@@ -28,7 +28,8 @@ public:
         return *this;
     }
 
-    var& operator+=(var& v)
+    template<uintptr_t _O>
+    var& operator+=(var<T, _O>& v)
     {
         T& p = get();
         p += v.get();
@@ -42,7 +43,8 @@ public:
         return *this;
     }
 
-    var& operator=(var& v)
+    template<uintptr_t _O>
+    var& operator=(var<T, _O>& v)
     {
         T& p = get();
         p = v.get();
@@ -69,12 +71,14 @@ public:
         return get() != v;
     }
 
-    bool operator==(var& v) const
+    template<uintptr_t _O>
+    bool operator==(var<T, _O>& v) const
     {
         return get() == v.get();
     }
 
-    bool operator!=(var& v) const
+    template<uintptr_t _O>
+    bool operator!=(var<T, _O>& v) const
     {
         return get() != v.get();
     }
@@ -87,6 +91,36 @@ public:
     auto operator->() const
     {
         return get();
+    }
+
+    var operator++()
+    {
+        T& v = get();
+        ++v;
+        return *this;
+    }
+
+    var operator--()
+    {
+        T& v = get();
+        --v;
+        return *this;
+    }
+
+    var operator++(int)
+    {
+        var tmp = *this;
+        T& v = get();
+        v++;
+        return tmp;
+    }
+
+    var operator--(int)
+    {
+        var tmp = *this;
+        T& v = get();
+        v--;
+        return tmp;
     }
 };
 

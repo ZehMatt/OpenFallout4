@@ -39,5 +39,8 @@
     <ClInclude Include="interop\interop.h">
       <Filter>interop</Filter>
     </ClInclude>
+    <ClInclude Include="game\game.h">
+      <Filter>game</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
