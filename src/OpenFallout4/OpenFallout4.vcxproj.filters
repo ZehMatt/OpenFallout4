@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="interop\hooks.cpp">
+      <Filter>interop</Filter>
+    </ClCompile>
+    <ClCompile Include="interop\interopbase.cpp">
+      <Filter>interop</Filter>
+    </ClCompile>
+    <ClCompile Include="interop\dllmain.cpp">
+      <Filter>interop</Filter>
+    </ClCompile>
+    <ClCompile Include="game\game.cpp">
+      <Filter>game</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="interop">
+      <UniqueIdentifier>{d17f702e-d15f-4dcc-871d-bc0894b8ddc4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="game">
+      <UniqueIdentifier>{85d34c95-2ed3-41a9-b2bd-e440dbb13c97}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="interop\hooks.h">
+      <Filter>interop</Filter>
+    </ClInclude>
+    <ClInclude Include="interop\interopvar.h">
+      <Filter>interop</Filter>
+    </ClInclude>
+    <ClInclude Include="interop\interopfunc.h">
+      <Filter>interop</Filter>
+    </ClInclude>
+    <ClInclude Include="interop\interopbase.h">
+      <Filter>interop</Filter>
+    </ClInclude>
+    <ClInclude Include="interop\interop.h">
+      <Filter>interop</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
