@@ -13,7 +13,8 @@ struct TimeData_t
     uint64_t field_28;
     uint64_t field_30;
     uint32_t counter;
-    uint32_t bChangeTimeMultSlowly; 
+    bool bChangeTimeMultSlowly; 
+    uint8_t pad[3];
     uint32_t field_40;
     uint32_t field_44;
     uint32_t field_48;

@@ -60,12 +60,16 @@ static interop::var<uint32_t, 0x1438FE1F0> dword_1438FE1F0;
 static interop::var<uint32_t, 0x1438FE1F4> dword_1438FE1F4;
 static interop::var<uint32_t, 0x1437C6528> dword_1437C6528;
 static interop::var<uint32_t, 0x143905E80> dword_143905E80;
-static interop::var<uint32_t, 0x14676> TlsIndex;
+static interop::var<uint32_t, 0x14676BDF4> TlsIndex;
+static interop::var<uint64_t, 0x145B946B0> gFrequency;
 static interop::var<float, 0x145B00A58> gDeltaAccumulator;
 static interop::var<float, 0x145B00A5C> flt_145B00A5C;
 static interop::var<float, 0x1437C6528> flt_1437C6528;
 static interop::var<float, 0x1437C6DC8> flt_1437C6DC8;
 static interop::var<float, 0x1437C65E8> flt_1437C65E8;
+static interop::var<float, 0x143889EF8> flt_143889EF8;
+static interop::var<float, 0x1437C70E0> fHavokTauRatio;
+static interop::var<float, 0x145ADD2B0> gScaledDeltaTime;
 static interop::var<char, 0x145ADD2AD> byte_145ADD2AD;
 static interop::var<char, 0x1437C6618> byte_1437C6618;
 static interop::var<char, 0x145ADD550> byte_145ADD550;
@@ -74,6 +78,7 @@ static interop::var<char, 0x145B14E0F> byte_145B14E0F;
 static interop::var<char, 0x145ADD2FC> byte_145ADD2FC;
 static interop::var<char, 0x1437C6660> byte_1437C6660;
 static interop::var<char, 0x145ADD2AC> byte_145ADD2AC;
+static interop::var<char, 0x1437C6960> bChangeTimeMultSlowly;
 static interop::var<char[128], 0x143905A00> unk_143905A00;
 
 // Functions.
@@ -101,7 +106,7 @@ static interop::func<void*(), 0x14287C6D0> sub_14287C6D0;
 static interop::func<void(void*), 0x142853DF0> sub_142853DF0;
 static interop::func<int64_t(GameContext_t*), 0x140D3B6E0> sub_140D3B6E0;
 static interop::func<int64_t(int32_t), 0x14294BDB0> sub_14294BDB0;
-static interop::func<int(void), 0x140D39B50> sub_140D39B50;
+//static interop::func<int(void), 0x140D39B50> ComputeTimeDelta;
 static interop::func<int(void*), 0x141B62EA0> sub_141B62EA0;
 static interop::func<void(double), 0x140267FA0> BeginFrame;
 static interop::func<int64_t(), 0x140D3BE30> sub_140D3BE30;
@@ -199,6 +204,11 @@ static interop::func<int64_t(), 0x1404E1510> sub_1404E1510;
 static interop::func<int64_t(void*), 0x1428C3690> sub_1428C3690;
 static interop::func<int64_t(), 0x140D0CCA0> sub_140D0CCA0;
 static interop::func<int64_t(void*), 0x14204AE30> sub_14204AE30;
+static interop::func<int64_t(float), 0x141D6E8E0> TtbhkWorld_SetDeltaTime;
+static interop::func<void(), 0x141B13900> SetTimeScale;
+static interop::func<LARGE_INTEGER(), 0x141B13900> GetCurrentCounter;
+static interop::func<int64_t(TimeData_t*, uint32_t), 0x141B137B0> sub_141B137B0;
+static interop::func<int64_t(void*), 0x141371EB0> sub_141371EB0;
 
 // Const
 static const char *lpClassName = "Fallout4";
@@ -603,6 +613,46 @@ bool __stdcall InitializeGame()
 }
 //HOOK_FUNCTION(0x140D35F80, InitializeGame);
 
+// 0x140D39B50
+int64_t __fastcall ComputeTimeDelta(GameContext_t *ctx)
+{
+    TimeData_t& td = gTimeData2.get();
+
+    td.bChangeTimeMultSlowly = bChangeTimeMultSlowly.get();
+    if (!ctx->field_1D0)
+        SetTimeScale();
+
+    LARGE_INTEGER currentCounter = GetCurrentCounter();
+
+    // Not sure why but they seem to do it.
+    uint32_t elapsedTime = (uint32_t)(1000 * (currentCounter.QuadPart - td.counterStart) / gFrequency.get());
+
+    int64_t result = sub_141B137B0(&td, elapsedTime);
+    flt_143889EF8 = fHavokTauRatio;
+
+    float delta;
+    if (ctx->field_1D0)
+    {
+        result = TtbhkWorld_SetDeltaTime(td.scaledDeltaTime);
+        if(!ctx->field_1D0)
+            delta = td.scaledDeltaTime;
+        else
+            delta = 0.0f;
+    }
+    else
+    {
+        delta = td.scaledDeltaTime;
+    }
+
+    gScaledDeltaTime = delta;
+
+    if (byte_145ADD2AC.get())
+        result = sub_141371EB0(qword_14590C388.get());
+
+    return result;
+}
+HOOK_FUNCTION(0x140D39B50, ComputeTimeDelta);
+
 int64_t __fastcall GameUpdate(GameContext_t *a1)
 {
     char v3; // si
@@ -637,13 +687,15 @@ int64_t __fastcall GameUpdate(GameContext_t *a1)
     float delta = 0.0f;
 
     GameContext_t *context = a1;
+
     bool v2 = *(uint32_t*)(qword_145909918.get() + 480) != 0;
     a1->field_1D0 = v2;
+
     if (v2 || a1->field_2A)
     {
         v3 = 0;
         if (v2)
-            sub_140D39B50();
+            ComputeTimeDelta(context);
     }
     else
     {
@@ -817,12 +869,14 @@ LABEL_48:
                 if (!context->field_1D0 && !context->field_2A)
                     sub_1401E4B30();
 
+                // Not calling this crashes.
                 sub_140F0DC60(qword_145907F18.get(), gTimeData2.get().scaledDeltaTime);
                 if (context->field_1D0)
                 {
                     sub_140D24360();
                     sub_141BA5830();
                 }
+
                 /*
                 if (gHitchedShaderCompilation)
                 {
@@ -830,6 +884,7 @@ LABEL_48:
                     sub_140AE1D70((unsigned __int64)"Hitched from shader compile", 0);
                 }
                 */
+
                 if (!context->field_1D0 && !context->field_2A && !sub_140D413D0())
                 {
                     sub_1400F57C0(qword_145ADD2D0.get(), qword_145ADD3D8.get() + 208, 1, nullptr);
@@ -837,8 +892,10 @@ LABEL_48:
 
                 sub_141B63050(0);
                 sub_141B63050(1);
+
                 if (qword_14590D6E0.get())
                     sub_1401819F0(qword_14590D6E0.get());
+
                 sub_141B63050(2);
                 v36 = *(uint32_t **)(qword_145ADD3A8.get() + 320);
                 v36[97] = dword_1438FE1E8.get();
