@@ -17,7 +17,7 @@ static interop::var<char[0x08], 0x145ADE390> byte_145ADE390;
 static interop::var<char[0x10], 0x145ADE398> byte_145ADE398;
 static interop::var<char[0x08], 0x145ADE3A8> byte_145ADE3A8;
 static interop::var<void*, 0x145907BA0> qword_145907BA0;
-static interop::var<uint8_t*, 0x145909918> qword_145909918;
+static interop::var<uint8_t*, 0x145909918> gBSInputEventReceiver;
 static interop::var<uint8_t*, 0x145ADD3A8> qword_145ADD3A8;
 static interop::var<uint8_t*, 0x145909B40> qword_145909B40;
 static interop::var<uint8_t*, 0x145A13170> qword_145A13170;
@@ -62,6 +62,8 @@ static interop::var<uint32_t, 0x1437C6528> dword_1437C6528;
 static interop::var<uint32_t, 0x143905E80> dword_143905E80;
 static interop::var<uint32_t, 0x14676BDF4> TlsIndex;
 static interop::var<uint64_t, 0x145B946B0> gFrequency;
+static interop::var<uint64_t, 0x14657BC34> gMaxStepTime;
+
 static interop::var<float, 0x145B00A58> gDeltaAccumulator;
 static interop::var<float, 0x145B00A5C> flt_145B00A5C;
 static interop::var<float, 0x1437C6528> flt_1437C6528;
@@ -70,6 +72,9 @@ static interop::var<float, 0x1437C65E8> flt_1437C65E8;
 static interop::var<float, 0x143889EF8> flt_143889EF8;
 static interop::var<float, 0x1437C70E0> fHavokTauRatio;
 static interop::var<float, 0x145ADD2B0> gScaledDeltaTime;
+static interop::var<float, 0x14387D7D0> gTimeScale;
+static interop::var<float, 0x143889F08> flt_143889F08;
+
 static interop::var<char, 0x145ADD2AD> byte_145ADD2AD;
 static interop::var<char, 0x1437C6618> byte_1437C6618;
 static interop::var<char, 0x145ADD550> byte_145ADD550;
@@ -135,7 +140,7 @@ static interop::func<void*(), 0x14204C330> sub_14204C330;
 static interop::func<void*(), 0x14204B850> sub_14204B850;
 static interop::func<void*(), 0x14204B5B0> sub_14204B5B0;
 static interop::func<int64_t(), 0x140D0CCD0> sub_140D0CCD0;
-static interop::func<int64_t(void*), 0x140D1D730> sub_140D1D730;
+static interop::func<int64_t(void*, float), 0x140D1D730> sub_140D1D730;
 static interop::func<int64_t(void*, uint64_t), 0x140D19F30> sub_140D19F30;
 static interop::func<int64_t(), 0x140CBCE50> sub_140CBCE50;
 static interop::func<uint8_t(void*), 0x1427D3280> sub_1427D3280;
@@ -207,7 +212,7 @@ static interop::func<int64_t(void*), 0x14204AE30> sub_14204AE30;
 static interop::func<int64_t(float), 0x141D6E8E0> TtbhkWorld_SetDeltaTime;
 static interop::func<void(), 0x141B13900> SetTimeScale;
 static interop::func<LARGE_INTEGER(), 0x141B13900> GetCurrentCounter;
-static interop::func<int64_t(TimeData_t*, uint32_t), 0x141B137B0> sub_141B137B0;
+//static interop::func<int64_t(TimeData_t*, uint32_t), 0x141B137B0> sub_141B137B0;
 static interop::func<int64_t(void*), 0x141371EB0> sub_141371EB0;
 
 // Const
@@ -613,7 +618,56 @@ bool __stdcall InitializeGame()
 }
 //HOOK_FUNCTION(0x140D35F80, InitializeGame);
 
-// 0x140D39B50
+// 0x141B137B0
+signed __int64 __fastcall sub_141B137B0(TimeData_t *td, uint32_t totalElapsedMs)
+{
+    __int64 elapsed; // r9
+    float v5; // xmm1_4
+    signed __int64 result; // rax
+    unsigned __int64 v7; // rcx
+    float v8; // xmm0_4
+    float v9; // xmm0_4
+
+    elapsed = totalElapsedMs - td->timestampStartMs;
+    if (td->counter)
+    {
+        result = 0;
+        td->scaledDeltaTime = 0;
+    }
+    else
+    {
+        if (td->maxFrameRateMs == 0.0f)
+        {
+            result = 166;
+            v7 = elapsed - td->deltaTime;
+            if (v7 <= 166)
+            {
+                result = elapsed - td->deltaTime;
+                if (v7 < 8)
+                    result = 8;
+            }
+            v8 = (float)(signed int)result;
+            if (result < 0)
+                v8 = v8 + 1.8446744e19f;
+            td->scaledDeltaTime = v8 * 0.001f;
+        }
+        else
+        {
+            v5 = td->maxFrameRateMs + td->field_C;
+            td->scaledDeltaTime = td->maxFrameRateMs * 0.001f;
+            result = (unsigned int)(signed int)v5;
+            elapsed = td->deltaTime + result;
+            td->field_C = v5 - (float)(signed int)v5;
+        }
+        v9 = td->scaledDeltaTime;
+        td->deltaTime = elapsed;
+        td->unscaledDeltaTime = v9;
+        td->scaledDeltaTime = v9 * gTimeScale.get();
+    }
+    return result;
+}
+HOOK_FUNCTION(0x141B137B0, sub_141B137B0);
+
 int64_t __fastcall ComputeTimeDelta(GameContext_t *ctx)
 {
     TimeData_t& td = gTimeData2.get();
@@ -625,19 +679,18 @@ int64_t __fastcall ComputeTimeDelta(GameContext_t *ctx)
     LARGE_INTEGER currentCounter = GetCurrentCounter();
 
     // Not sure why but they seem to do it.
-    uint32_t elapsedTime = (uint32_t)(1000 * (currentCounter.QuadPart - td.counterStart) / gFrequency.get());
+    int64_t elapsedTime = (1000 * (currentCounter.QuadPart - td.counterStart) / gFrequency.get());
 
-    int64_t result = sub_141B137B0(&td, elapsedTime);
+    int64_t result = sub_141B137B0(&td, (uint32_t)elapsedTime);
     flt_143889EF8 = fHavokTauRatio;
 
     float delta;
-    if (ctx->field_1D0)
+    if (ctx->field_1D0
+        || (*(uint32_t*)(qword_14591BA80.get() + 64) == 1,
+            result = TtbhkWorld_SetDeltaTime(td.scaledDeltaTime),
+            ctx->field_1D0))
     {
-        result = TtbhkWorld_SetDeltaTime(td.scaledDeltaTime);
-        if(!ctx->field_1D0)
-            delta = td.scaledDeltaTime;
-        else
-            delta = 0.0f;
+        delta = 0.0;
     }
     else
     {
@@ -645,6 +698,7 @@ int64_t __fastcall ComputeTimeDelta(GameContext_t *ctx)
     }
 
     gScaledDeltaTime = delta;
+    //flt_143889F08 = gScaledDeltaTime;
 
     if (byte_145ADD2AC.get())
         result = sub_141371EB0(qword_14590C388.get());
@@ -653,7 +707,7 @@ int64_t __fastcall ComputeTimeDelta(GameContext_t *ctx)
 }
 HOOK_FUNCTION(0x140D39B50, ComputeTimeDelta);
 
-int64_t __fastcall GameUpdate(GameContext_t *a1)
+int64_t __fastcall GameUpdate(GameContext_t *a1, float deltaTime)
 {
     char v3; // si
     int64_t result; // ax
@@ -688,24 +742,30 @@ int64_t __fastcall GameUpdate(GameContext_t *a1)
 
     GameContext_t *context = a1;
 
-    bool v2 = *(uint32_t*)(qword_145909918.get() + 480) != 0;
+    bool v2 = *(uint32_t*)(gBSInputEventReceiver.get() + 480) != 0;
+
     a1->field_1D0 = v2;
+
+    TimeData_t& td = gTimeData2.get();
+    delta = td.scaledDeltaTime;
 
     if (v2 || a1->field_2A)
     {
         v3 = 0;
         if (v2)
+        {
             ComputeTimeDelta(context);
+        }
     }
     else
     {
         v3 = 1;
     }
 
-    delta = gTimeData2.get().scaledDeltaTime;
+
     if ((!context->field_1D0 || context->field_1D1) && !context->field_2A)
     {
-        BeginFrame(delta);
+        BeginFrame(td.scaledDeltaTime);
     }
 
     //nullsub_980(qword_145ADD758, qword_145ADD228);
@@ -715,15 +775,17 @@ int64_t __fastcall GameUpdate(GameContext_t *a1)
         if (!context->field_1D0 || (sub_140D3BE30(), !context->field_1D0))
         {
             if (context->field_2A && sub_14124E6D0(qword_145907BA8.get(), 3u))
-                sub_140D39D20(context);
+            {
+                sub_140D39D20(context); // nothing
+            }
         }
         if (byte_145ADD2AD.get())
         {
             if (ProcessMessages())
             {
-                sub_140CBCEC0();
-                sub_1427D4670(qword_145909B28.get(), 1);
-                sub_1427D3FF0(qword_145909B28.get());
+                sub_140CBCEC0(); // nothing happens.
+                sub_1427D4670(qword_145909B28.get(), 1); // nothing
+                sub_1427D3FF0(qword_145909B28.get()); // nothing
             }
             else if (!(unsigned __int8)sub_140DB4E60(qword_145ADD3D8.get()))
             {
@@ -732,7 +794,7 @@ int64_t __fastcall GameUpdate(GameContext_t *a1)
                     if (byte_145ADD2B7.get())
                     {
                         byte_145B14E0F = 1;
-                        sub_1400FB170(qword_145ADD2D0.get(), nullptr, 1, 1);
+                        sub_1400FB170(qword_145ADD2D0.get(), nullptr, 1, 1); // nothing
                         sub_141CA38F0(qword_146038088.get(), 4);
                         v62 = 1;
                         sub_1400FB350(qword_145ADD2D0.get(), nullptr, 0, -1.0f, 1);
@@ -767,43 +829,48 @@ int64_t __fastcall GameUpdate(GameContext_t *a1)
 
         if (context->field_1D0)
         {
-            v10 = qword_145909918.get();
+            v10 = gBSInputEventReceiver.get();
             v11 = (uint64_t *)sub_14204B8B0(); // MapMenu
             if ((unsigned __int8)sub_142042040(v10, v11))
                 goto LABEL_48;
 
-            v12 = qword_145909918.get();
+            v12 = gBSInputEventReceiver.get();
             v13 = (uint64_t *)sub_14204B6D0(); // LockpickingMenu
             if ((unsigned __int8)sub_142042040(v12, v13))
                 goto LABEL_48;
 
-            v14 = qword_145909918.get();
+            v14 = gBSInputEventReceiver.get();
             v15 = (uint64_t *)sub_14204BFD0(); // RaceSexMenu
             if ((unsigned __int8)sub_142042040(v14, v15))
                 goto LABEL_48;
 
-            v16 = qword_145909918.get();
+            v16 = gBSInputEventReceiver.get();
             v17 = (uint64_t *)sub_14204C330(); // StatsMenu
             if ((unsigned __int8)sub_142042040(v16, v17))
                 goto LABEL_48;
 
-            v18 = qword_145909918.get();
+            v18 = gBSInputEventReceiver.get();
             v19 = (uint64_t *)sub_14204B850(); // MainMenu
             if ((unsigned __int8)sub_142042040(v18, v19))
                 goto LABEL_48;
 
-            v20 = qword_145909918.get();
+            v20 = gBSInputEventReceiver.get();
             v21 = (uint64_t *)sub_14204B5B0(); // LoadingMenu
             if ((unsigned __int8)sub_142042040(v20, v21))
                 goto LABEL_48;
         }
+
         v22 = *(unsigned int *)(qword_146038088.get() + 5168);
         if (!(uint32_t)v22)
         {
             if (context->field_1D0)
             {
                 sub_140D0CCD0();
+
+                float xmm0;
 LABEL_48:
+                TimeData_t savedTimeData = td;
+
                 if (v3)
                     dword_146759304.get() ^= 1u;
 
@@ -812,23 +879,31 @@ LABEL_48:
                     // NOTE: This is a function call.
                     (*(void(__cdecl **)(void*))(*(uint64_t *)qword_145ADD3A8.get() + 552i64))(qword_145ADD3A8.get());
 
-                    sub_140D1D730(qword_145909B40.get());
-                    sub_140D19F30(qword_145A13170.get(), gTimeData2.get().deltaTime);
+                    sub_140D1D730(qword_145909B40.get(), td.scaledDeltaTime);
+                    sub_140D19F30(qword_145A13170.get(), td.deltaTime);
                 }
 
                 if (v3)
                 {
                     flt_145B00A5C = gDeltaAccumulator;
-                    delta = gDeltaAccumulator.get() + gTimeData2.get().scaledDeltaTime;
+                    delta = gDeltaAccumulator.get() + td.scaledDeltaTime;
                     gDeltaAccumulator = delta;
-                    sub_140CBCE50();
+
+                    static LARGE_INTEGER lastUpdate = {};
+                    LARGE_INTEGER now = GetCurrentCounter();
+                    int64_t elapsed = (1000 * (lastUpdate.QuadPart - lastUpdate.QuadPart) / gFrequency.get());
+                    //if (elapsed >= 16)
+                    {
+                        lastUpdate = now;
+                        sub_140CBCE50(); // SetEvent.
+                    }
                 }
 
                 if (byte_145ADD2AC.get())
                 {
                     if (!sub_1427D3280(qword_145909B28.get()))
                         sub_140D3C000();
-                    v26 = qword_145909918.get();
+                    v26 = gBSInputEventReceiver.get();
                     v27 = (uint64_t *)sub_14204B8B0(); // MapMenu
                     if (!(unsigned __int8)sub_142042040(v26, v27))
                     {
@@ -854,7 +929,7 @@ LABEL_48:
                         sub_141372030(qword_14590C388.get());
                         sub_141372290(qword_14590C388.get());
                         sub_141084620(qword_145A12E18.get(), 1);
-                        sub_140E146C0(qword_145ADD3D8.get(), delta, 0.0f);
+                        sub_140E146C0(qword_145ADD3D8.get(), td.scaledDeltaTime, 0.0f);
                         sub_140D396C0();
                     }
                     sub_141B2BD10(qword_145A986B8.get());
@@ -864,13 +939,15 @@ LABEL_48:
                     sub_141B2D1E0(qword_145A98AB0.get(), qword_145A92288.get());
                     sub_140A510E0(qword_145A9BF90.get());
                 }
+
                 if (byte_145ADD2AC.get())
                     sub_140D39A10();
                 if (!context->field_1D0 && !context->field_2A)
                     sub_1401E4B30();
 
                 // Not calling this crashes.
-                sub_140F0DC60(qword_145907F18.get(), gTimeData2.get().scaledDeltaTime);
+                sub_140F0DC60(qword_145907F18.get(), td.scaledDeltaTime);
+
                 if (context->field_1D0)
                 {
                     sub_140D24360();
@@ -922,42 +999,52 @@ LABEL_48:
                 if (qword_145908100.get())
                     sub_142572910(qword_145AA0A40.get());
 
-                float xmm0 = flt_1437C6528.get();
+                xmm0 = flt_1437C6528.get();
                 v30 = flt_1437C6DC8.get();
                 if(v30 <= xmm0)
                     v30 = xmm0;
                     
-                sub_140D3A8A0(context, v30);
-                sub_140D385E0(context);
+                sub_140D3A8A0(context, v30); // nothing.
+
+                sub_140D385E0(context); // crashes if not called, many things inside.
+
                 v40 = sub_140CBCD50(0);
-                sub_140CBCE80();
+
+                sub_140CBCE80(); // WaitForSingleObject, update worker?
+
                 if (dword_143905E80.get() != 2)
                     sub_141B0F330(&unk_143905A00.get(), &dword_143905E80.get());
+
                 v42 = sub_141B0E350(&unk_143905A00.get());
                 sub_141B14600(v42);
+
                 if (!v40)
                 {
                     sub_141B2D1E0(qword_145A98AB0.get(), qword_145909B58.get());
                     sub_141B2D1E0(qword_145A98AB0.get(), qword_145AA0260.get());
-                    sub_141B2D1E0(qword_145A98AB0.get(), qword_145909918.get());
+                    sub_141B2D1E0(qword_145A98AB0.get(), gBSInputEventReceiver.get());
                     sub_140C20300(qword_145A12E20.get());
                     sub_1409FD050();
-                    sub_142042310(qword_145909918.get());
-                    sub_142043410(qword_145909918.get());
+                    sub_142042310(gBSInputEventReceiver.get());
+                    sub_142043410(gBSInputEventReceiver.get());
                 }
+
                 if (qword_145A98E60.get())
                 {
                     sub_1409FD260(qword_145A98E60.get());
                     *(uint32_t *)(qword_145A98E60.get() + 428) = 0;
                 }
+
                 if (gGameContext->field_2B)
                 {
                     gGameContext->field_2B = 0;
                     gGameContext->field_2A = 1;
                 }
-                sub_14125B660();
+
+                sub_14125B660(); // nothing.
 
                 EndFrame(context);
+
                 if ((!context->field_1D0 || context->field_1D1) && !context->field_2A)
                     sub_140268090(xmm0);
 
@@ -965,10 +1052,9 @@ LABEL_48:
                 {
                     if (!context->field_1D0 && !context->field_2A)
                     {
-                        float scaledDelta = gTimeData2.get().scaledDeltaTime;
-                        sub_1409C02F0(scaledDelta);
-                        sub_140E61300(scaledDelta);
-                        sub_1409C4510(scaledDelta);
+                        sub_1409C02F0(td.scaledDeltaTime);
+                        sub_140E61300(td.scaledDeltaTime);
+                        sub_1409C4510(td.scaledDeltaTime);
                     }
                     sub_142486E10();
                     sub_140C8C450();
@@ -985,7 +1071,7 @@ LABEL_48:
                     }
                     sub_1404E4C20();
                     sub_140D57E80(qword_145AFF540.get(), p1, 8);
-                    v51 = qword_145909918.get();
+                    v51 = gBSInputEventReceiver.get();
                     v53 = (uint64_t *)sub_14204BFD0();
                     if ((unsigned __int8)sub_142042040(v51, v53))
                     {
@@ -1008,20 +1094,22 @@ LABEL_48:
                     //nullsub_807(v59);
                     *(uint32_t *)(v60 + 2496) = v61;
                 }
-                return sub_1428C3690(qword_14676A740.get());
+                int64_t res = 0;
+                res = sub_1428C3690(qword_14676A740.get());
+                return res;
             }
             if (*((uint64_t *)qword_145ADD2D0.get() + 11))
             {
-                uint8_t *v23 = qword_145909918.get();
+                uint8_t *v23 = gBSInputEventReceiver.get();
                 uint64_t *v24 = (uint64_t *)sub_14204AE30((void*)v22);
                 if (!(unsigned __int8)sub_142042040(v23, v24))
                 {
-                    sub_140D0CCD0();
+                    sub_140D0CCD0(); // nothing.
                     goto LABEL_48;
                 }
             }
         }
-        sub_140D0CCA0();
+        sub_140D0CCA0(); // nothing
         goto LABEL_48;
     }
     return result;
@@ -1029,11 +1117,20 @@ LABEL_48:
 
 void MainGameLoop()
 {
+    LARGE_INTEGER lastUpdate = GetCurrentCounter();
+
     bool flipVar = false;
     while (true)
     {
         sub_14294BD50(0);
         sub_140D38A20(gGameContext.get());
+
+        LARGE_INTEGER currentCounter = GetCurrentCounter();
+        int64_t elapsedMs = (1000 * (currentCounter.QuadPart - lastUpdate.QuadPart) / gFrequency.get());
+        lastUpdate = currentCounter;
+
+        double delta = (double)elapsedMs / 1000.0;
+        float deltaMs = (float)delta;
 
         if (GetActiveWindow() == gGameContext->hwnd
             || qword_145ADD2D0.get() 
@@ -1048,7 +1145,7 @@ void MainGameLoop()
                 sub_140C8EC50(false, 0);
                 sub_1409E5F70(qword_145A92288.get());
             }
-            GameUpdate(gGameContext.get());
+            GameUpdate(gGameContext.get(), deltaMs);
         }
         else
         {
